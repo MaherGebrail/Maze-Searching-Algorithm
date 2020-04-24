@@ -6,6 +6,10 @@ class Completed(Exception):
     pass
 
 
+class CorruptedMaze(Exception):
+    pass
+
+
 class Maze:
     directionsValues = {
         "UP": (0, 1),
@@ -22,6 +26,7 @@ class Maze:
         self.path = []
         self.A = self.starPoint()
         self.usedFrontier = []
+        self.maxsteps = self.maxStepsinMaze()
 
     def setMaze(self):
         with open(self.file, "r") as f:
@@ -87,6 +92,14 @@ class Maze:
 
         return func(point)
 
+    def maxStepsinMaze(self):
+        counter = 0
+        for line in self.maze:
+            for _ in line:
+                counter += 1
+        sys.setrecursionlimit(counter)
+        return counter
+
     def drawPath(self):
         get_draw = self.maze
         print("Throw path : ", self.path)
@@ -111,12 +124,12 @@ class SearchInDepth(Maze):
     def __init__(self):
         super().__init__()
         self.path.append(self.A)
+        self.steps = 0
         self.searchInDepth()
 
     def searchInDepth(self):
         try:
-            while self.search:
-
+            while self.steps <= self.maxsteps:
                 if len(self.frontier) == 0:
                     try:
                         self.EvaluateNextPoint(self.path[-1])
@@ -127,7 +140,8 @@ class SearchInDepth(Maze):
                     last_point = self.frontier.pop()
                     self.usedFrontier.append(last_point)
                     self.EvaluateNextPoint(last_point)
-
+                self.steps += 1
+            raise CorruptedMaze
         except Completed:
             print("Search In Depth solution .. ")
             pass
@@ -157,12 +171,18 @@ class SearchInBreadth(Maze):
         super().__init__()
         self.swapPath = []
         self.path.append(self.A)
+        self.steps=0
         self.searchInBreadth_()
 
     def searchInBreadth_(self):
         try:
-            while True:
-                self.EvaluatePoints(self.path)
+            while self.steps <= self.maxsteps:
+                try:
+                    self.EvaluatePoints(self.path)
+                except RecursionError:
+                    self.steps = self.maxsteps + 1
+                self.steps += 1
+            raise CorruptedMaze
         except Completed:
             print("Search In Breadth solution .. ")
             self.path = self.swapPath[1:]
@@ -172,21 +192,7 @@ class SearchInBreadth(Maze):
         points = self.path
         self.swapPath += points_
         self.path = []
-        go = False
-        for point in points:
-            newPoint = [0, 0]
-
-            for direct, val in self.directionsValues.items():
-                newPoint[0] = point[0] + val[0]
-                newPoint[1] = point[1] + val[1]
-                try:
-                    x = self.maze[newPoint[0]][newPoint[1]]
-                    if x == " " and newPoint not in self.path and newPoint[0] >= 0 and newPoint[1] >= 0:
-                        go = True
-                except IndexError:
-                    pass
-        if go:
-            self.start_digging(points, self.EvaluatePoints)
+        self.start_digging(points, self.EvaluatePoints)
 
     def start_digging(self, points, func):
         for point in points:
@@ -207,6 +213,8 @@ class SearchInBreadth(Maze):
 if len(sys.argv) == 1:
     name_maze = input("Enter Name Of Maze File : ")
     sys.argv.append(name_maze)
-
-SearchInDepth().drawPath()
-SearchInBreadth().drawPath()
+try:
+    SearchInDepth().drawPath()
+    SearchInBreadth().drawPath()
+except CorruptedMaze:
+    print("Corrupted Maze")
