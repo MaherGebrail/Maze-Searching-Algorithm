@@ -22,7 +22,6 @@ class Maze:
         self.file = sys.argv[1]
         self.maze = self.setMaze()
         self.frontier = []
-        self.search = True
         self.path = []
         self.A = self.starPoint()
         self.usedFrontier = []
@@ -66,13 +65,6 @@ class Maze:
     def start_digging(self, point, func):
         self.path.append(point)
         aroundPoint, indexes = self.seeAround(point)
-
-        localPath = []
-        try:
-            if point != localPath[-1]:
-                localPath.append(point)
-        except IndexError:
-            pass
 
         if aroundPoint.count("B") == 1:
             self.add_EndPoint(aroundPoint, indexes, self.path)
@@ -180,7 +172,7 @@ class SearchInBreadth(Maze):
                 try:
                     self.EvaluatePoints(self.path)
                 except RecursionError:
-                    self.steps = self.maxsteps + 1
+                    break
                 self.steps += 1
             raise CorruptedMaze
         except Completed:
